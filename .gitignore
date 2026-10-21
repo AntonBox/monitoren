@@ -1,0 +1,20 @@
+# .NET build artifacts
+**/bin/
+**/obj/
+**/TestResults/
+**/publish/
+*.user
+*.suo
+*.userosscache
+.vs/
+.vscode/*.log
+.idea/
+
+# Generated data and diagnostics
+*.log
+*.dmp
+*.tmp
+
+# OS
+Thumbs.db
+.DS_Store
