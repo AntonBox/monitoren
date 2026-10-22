@@ -10,6 +10,25 @@ On a Windows laptop with an external HDMI monitor, changing brightness through a
 - One or more detected monitors, but **one explicitly selected external physical monitor** controlled at a time in V1.
 - Real hardware DDC/CI brightness, not simulated color/gamma correction.
 
+**Approved HDR scope amendment (2026-10-22):** the user's AOC Q27G42XE is used
+with Windows HDR enabled. DDC Test/Restore read back 45 -> 40 -> 45, but the
+user observed no visible change. The user approved Monitorian-style Windows
+SDR-content brightness, including its undocumented setter, while keeping HDR
+enabled. Provide one control without a mode selector. In this adapted M3 only,
+use a manual approved test and Restore; the tray slider remains DEMO until M4.
+This controls SDR desktop content within HDR, not the backlight or HDR content
+uniformly. No gamma manipulation, HDR toggling, or automatic DDC fallback.
+The existing physical-brightness acceptance wording below applies to the DDC
+path; the approved HDR path instead requires a visible SDR-content change and
+exact restoration with HDR still enabled. See [M3 test guide](docs/M3-HDR-test.md).
+
+M3's final 73% -> 68% -> 73% test and visible Restore were confirmed by the user,
+who authorized M4. M4 connects the single tray slider to this same SDR control,
+using the 80-480 reference-white nit application scale and a 10% slider minimum.
+The explicitly confirmed HDMI target is retained for the connection; slider
+movements authorize changes. Reopening reads current brightness without writing.
+Errors disable control until manual reconfirmation; no automatic DDC fallback.
+
 ## V1 features
 
 1. Runs in notification area / tray, with no permanently visible taskbar window.

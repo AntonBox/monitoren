@@ -1,3 +1,5 @@
+using MonitorBrightness.UI;
+
 namespace MonitorBrightness;
 
 internal sealed class TrayApplicationContext : ApplicationContext
@@ -5,16 +7,19 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly Form1 popup = new();
     private readonly ContextMenuStrip menu = new();
     private readonly NotifyIcon trayIcon;
+    private DiagnosticsForm? diagnostics;
+    private bool exiting;
 
     public TrayApplicationContext()
     {
         menu.Items.Add("Open", null, (_, _) => ShowPopup());
-        menu.Items.Add("Exit", null, (_, _) => ExitThread());
+        menu.Items.Add("Read-only diagnostics", null, (_, _) => ShowDiagnostics());
+        menu.Items.Add("Exit", null, async (_, _) => await ExitAsync());
 
         trayIcon = new NotifyIcon
         {
             Icon = SystemIcons.Application,
-            Text = "Monitor Brightness - DEMO",
+            Text = "Monitor Brightness",
             ContextMenuStrip = menu,
             Visible = true
         };
@@ -23,7 +28,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void OnTrayMouseClick(object? sender, MouseEventArgs e)
     {
-        if (e.Button != MouseButtons.Left)
+        if (exiting || e.Button != MouseButtons.Left)
         {
             return;
         }
@@ -40,12 +45,35 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void ShowPopup()
     {
-        var workingArea = Screen.FromPoint(Cursor.Position).WorkingArea;
-        popup.Location = new Point(
-            Math.Max(workingArea.Left, workingArea.Right - popup.Width - 12),
-            Math.Max(workingArea.Top, workingArea.Bottom - popup.Height - 12));
-        popup.Show();
-        popup.Activate();
+        if (!exiting) popup.ShowNearTray();
+    }
+
+    private void ShowDiagnostics()
+    {
+        diagnostics ??= new DiagnosticsForm();
+        diagnostics.Show();
+        diagnostics.Activate();
+    }
+
+    private async Task ExitAsync()
+    {
+        if (exiting)
+        {
+            return;
+        }
+
+        exiting = true;
+        menu.Enabled = false;
+        popup.Hide();
+        trayIcon.Text = "Monitor Brightness - finishing current operation";
+        await popup.StopAsync();
+
+        if (diagnostics is not null)
+        {
+            await diagnostics.StopAsync();
+        }
+
+        ExitThread();
     }
 
     protected override void ExitThreadCore()
@@ -64,6 +92,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             trayIcon.Dispose();
             menu.Dispose();
             popup.Dispose();
+            diagnostics?.Dispose();
         }
 
         base.Dispose(disposing);

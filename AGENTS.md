@@ -31,6 +31,34 @@ Build a small **local-only Windows tray utility** to control the **hardware brig
 
 ## Hardware safety and DDC/CI constraints
 
+### Approved M3 HDR exception (2026-10-22)
+
+The user requires HDR to stay enabled and explicitly approved adapting M3 to
+Monitorian-style Windows SDR-content brightness, including its undocumented
+DisplayConfig setter. This is the only approved exception to the DDC-only scope.
+Use one manual Test/Restore flow on the confirmed sole external HDMI display;
+do not add a mode selector or advance to M4. Require fresh per-write approval,
+retain the exact original SDR value, and block writes on identity/HDR changes.
+Do not toggle HDR, use gamma ramps, or silently fall back to DDC. Windows SDR
+content brightness is not hardware backlight control and must be described honestly.
+M3 SDR detection currently requires Windows 11 build 26100 or newer; older
+systems must fail clearly without changing anything.
+The user verified the temporary 50-point SDR test and Restore visually, then
+requested M3 again with a maximum five-point change. Both SDR and DDC tests are
+now limited to five percentage points, with the same 10% floor and exact Restore.
+The earlier permission for a larger test is superseded by this latest request.
+
+### Approved M4 continuation
+
+After confirming the five-point change and Restore, the user authorized M4
+("go step 4"). Use the same verified HDR-preserving SDR path for one tray slider.
+For M4, confirm the sole external HDMI target once per connection; subsequent
+explicit slider movements authorize writes within 10-100% without repeated
+approval dialogs. M3's per-write dialogs and five-point test limit remain specific
+to its archived manual test. Do not add hotkeys or persisted settings yet. Re-read
+on popup reopen, debounce/coalesce slider writes, and require reconfirmation after
+an error or display/HDR change. No automatic target replacement or startup writes.
+
 - Phase 1 hardware access is **read-only diagnostics**: enumerate monitors and attempt capability/brightness reads. **Never write brightness before the user authorizes a single test on a selected external monitor.**
 - **Never write to all monitors** by default. Do not assume monitor index ordering is stable after hotplug/reboot.
 - **Do not change the internal laptop display** in MVP. If uncertain whether a display is external/physical, require explicit selection/confirmation.

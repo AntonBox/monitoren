@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+    <ItemGroup>
+        <!-- DDC calls are replaced by FakePhysicalMonitorNative.cs; SDR tests inject FakeSdrApi.
+             SDR declarations are compiled only for packet/layout checks, never invoked. -->
+        <Compile Include="../../MonitorBrightness/Services/BrightnessTestSession.cs" Link="BrightnessTestSession.cs" />
+        <Compile Include="../../MonitorBrightness/Services/MonitorAccess.cs" Link="MonitorAccess.cs" />
+        <Compile Include="../../MonitorBrightness/Services/PhysicalTestMonitor.cs" Link="PhysicalTestMonitor.cs" />
+        <Compile Include="../../MonitorBrightness/Services/MonitorDiagnostics.cs" Link="MonitorDiagnostics.cs" />
+        <Compile Include="../../MonitorBrightness/Services/SdrTestMonitor.cs" Link="SdrTestMonitor.cs" />
+        <Compile Include="../../MonitorBrightness/Services/WindowsSdrDisplayApi.cs" Link="WindowsSdrDisplayApi.cs" />
+        <Compile Include="../../MonitorBrightness/Native/DisplayConfigNative.cs" Link="DisplayConfigNative.cs" />
+    </ItemGroup>
+</Project>
