@@ -85,6 +85,36 @@ public partial class Form1 : Form
         finally { busy = false; UpdateButtons(); }
     }
 
+    internal void SetHotkeyStatus(bool registered)
+    {
+        hotkeyLabel.Text = registered
+            ? "Hotkeys: Ctrl+Alt+Shift+PageUp / PageDown (+5 / -5)\r\nAvailable after confirmation and Read / Refresh."
+            : "Hotkeys unavailable. Open 'Hotkeys...' in the tray menu for details.\r\nThe slider can still be used.";
+    }
+
+    internal string? RequestHotkeyStep(int step)
+    {
+        if (stopping) return null;
+        if (busy) return "A brightness read or reconnect is in progress. Try the shortcut again when it finishes.";
+        if (!confirmMonitor.Checked || !controller.Ready)
+            return "Brightness control is unavailable. Open the tray popup, confirm the AOC, and click Read / Refresh. See its status for any display error.";
+        try
+        {
+            var requested = controller.RequestStep(step);
+            updatingControls = true;
+            try { brightnessSlider.Value = Math.Clamp((int)decimal.Round(requested), 10, 100); }
+            finally { updatingControls = false; }
+            percentageLabel.Text = $"Requested: {requested:F1}% | Last read: {lastRead:F1}%";
+            statusBox.Text = "Applying your latest brightness shortcut...";
+            return null;
+        }
+        catch (Exception exception)
+        {
+            ShowError(exception.Message);
+            return exception.Message;
+        }
+    }
+
     // Worker notifications are posted, never synchronously invoked across the UI boundary.
     private void OnControllerUpdate(SliderUpdate update)
     {
@@ -111,7 +141,7 @@ public partial class Form1 : Form
         percentageLabel.Text = $"Brightness: {actual.Percent:F1}%";
         statusBox.Text = actual.Percent < 10m
             ? "Current value is below the slider's 10% minimum. It has not been changed. Moving the slider applies 10% or higher."
-            : "Current value read successfully. Move the slider to adjust desktop brightness.";
+            : "Current value read successfully. Use the slider or registered shortcuts to adjust desktop brightness.";
     }
 
     private void ShowError(string message)

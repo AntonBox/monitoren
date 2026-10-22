@@ -59,6 +59,15 @@ to its archived manual test. Do not add hotkeys or persisted settings yet. Re-re
 on popup reopen, debounce/coalesce slider writes, and require reconfirmation after
 an error or display/HDR change. No automatic target replacement or startup writes.
 
+### Approved M5 continuation
+
+After confirming all six M4 checks, the user authorized "Complete only M5".
+Add Ctrl+Alt+Shift+PageUp/PageDown for five-point changes through the same SDR
+controller and confirmed connection. Explicit key presses authorize these writes,
+including while the popup is hidden. Keep HDR on, the 10-100% floor/range,
+identity checks, and error invalidation. Report conflicts and unregister on Exit.
+Settings, persistence, and configurable shortcut UI remain M6; no automatic writes.
+
 - Phase 1 hardware access is **read-only diagnostics**: enumerate monitors and attempt capability/brightness reads. **Never write brightness before the user authorizes a single test on a selected external monitor.**
 - **Never write to all monitors** by default. Do not assume monitor index ordering is stable after hotplug/reboot.
 - **Do not change the internal laptop display** in MVP. If uncertain whether a display is external/physical, require explicit selection/confirmation.

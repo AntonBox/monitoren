@@ -229,17 +229,43 @@ No native display API or brightness command was executed by the agent.
 On 2026-10-22, the user confirmed all six supplied M4 manual checks passed:
 confirmation/read without a brightness change, slow slider changes, rapid drags
 with the final value winning, popup close/reopen, HDMI disconnect/reconfirmation,
-and clean Exit. M4 is validated. M5 implementation awaits authorization.
+and clean Exit. M4 is validated. The user subsequently authorized "Complete only M5".
 No Git commit made; a local checkpoint is recommended with separate approval.
 
 ## M5 — Global hotkeys
 
-- [ ] Register global increase/decrease hotkeys via Win32 `RegisterHotKey`, process `WM_HOTKEY`.
-- [ ] Use same monitor target, min/max, and request queue as slider.
-- [ ] Default candidates `Ctrl+Alt+Shift+PageUp/PageDown` if available.
-- [ ] Report conflicts, release registrations on Exit.
+- [x] Register global increase/decrease hotkeys via Win32 `RegisterHotKey`, process `WM_HOTKEY`.
+- [x] Use same monitor target, min/max, and request queue as slider.
+- [x] Default candidates `Ctrl+Alt+Shift+PageUp/PageDown` if available.
+- [x] Report conflicts, release registrations on Exit.
 
 **Manual gate:** with another application focused, hotkeys change only selected monitor; no action after Exit.
+
+M5 implementation (2026-10-22): Ctrl+Alt+Shift+PageUp/PageDown request +5/-5
+percentage points using the existing confirmed SDR target and serialized queue.
+A dedicated message-only window receives WM_HOTKEY while the popup is hidden.
+MOD_NOREPEAT makes holding a key a single step. Rapid presses accumulate from
+the latest requested value, including during an in-flight write; fractional
+readings are retained. Slider requests and hotkeys share clamping and read-back.
+Opening/refreshing reads the actual value and resets the starting point.
+
+Registration failures report the shortcut and Win32 error through Hotkeys... in
+the tray menu, a popup label and a notification. Partial registration is rolled
+back so a failed pair does not act. Exit unregisters both keys before stopping
+brightness work; queued notifications cannot request new writes. Startup,
+registration and unconfirmed key presses do not read or write display brightness.
+No new settings, packages, persistence, hardware backend or Git commit added.
+
+Automated verification: Debug build succeeded with 0 warnings and 0 errors.
+All 15 M5 simulated checks, 19 M4 controller checks and 45 M3 regression checks
+passed. M5 checks cover registration rollback, dispatch, cleanup, fractional
+steps, rapid mixed input, limits, refresh, invalidation and shutdown. No real
+hotkey registration or native display calls were executed by these tests.
+The user confirmed all six [M5 manual checks](docs/M5-hotkeys-test.md) passed:
+confirmation gating, shortcuts with another app focused, rapid input, held-key
+and range limits, disconnect/reconfirmation, and conflict/Exit/relaunch behavior.
+M5 is validated. M6 is not started and awaits authorization. A local Git checkpoint
+is recommended, subject to separate approval; no commit was made by the agent.
 
 ## M6 — Settings, persistence, robustness
 

@@ -29,6 +29,11 @@ The explicitly confirmed HDMI target is retained for the connection; slider
 movements authorize changes. Reopening reads current brightness without writing.
 Errors disable control until manual reconfirmation; no automatic DDC fallback.
 
+The user validated M4 and authorized M5. Its fixed global hotkeys use the same
+confirmed SDR connection and queue, stepping by five percentage points with a
+10-100% clamp. They work with the popup hidden after confirmation/read. Held
+keys do not auto-repeat. Shortcut customization and persistence remain M6.
+
 ## V1 features
 
 1. Runs in notification area / tray, with no permanently visible taskbar window.

@@ -2,7 +2,7 @@ namespace MonitorBrightness.Services;
 
 internal sealed record SliderUpdate(long Revision, BrightnessReading? Reading, string? Error);
 
-// One confirmed target. Only Request schedules writes; connect/refresh are read-only.
+// One confirmed target. Only explicit slider/hotkey requests schedule writes.
 // All native operations use the shared worker queue, including cleanup.
 internal sealed class BrightnessSliderController
 {
@@ -13,7 +13,8 @@ internal sealed class BrightnessSliderController
     private readonly CancellationTokenSource shutdown = new();
     private ITestMonitor? monitor;
     private BrightnessReading range;
-    private int? pending;
+    private decimal? pending;
+    private decimal desiredPercent;
     private long revision;
     private bool ready;
     private bool stopping;
@@ -62,6 +63,7 @@ internal sealed class BrightnessSliderController
                         if (stopping || version != revision)
                             throw new InvalidOperationException("Connection changed while reading. Confirm the display again.");
                         range = actual;
+                        desiredPercent = actual.Percent;
                         monitor = opened;
                         ready = true;
                     }
@@ -103,6 +105,8 @@ internal sealed class BrightnessSliderController
                 actual.Validate();
                 if (actual.Minimum != range.Minimum || actual.Maximum != range.Maximum)
                     throw new InvalidOperationException("Brightness range changed. Confirm and reconnect the display.");
+                lock (sync)
+                    if (ready && !stopping && !running) desiredPercent = actual.Percent;
                 return actual;
             });
         }
@@ -112,16 +116,30 @@ internal sealed class BrightnessSliderController
 
     internal void Request(int percent)
     {
+        lock (sync) QueueRequest(percent);
+    }
+
+    internal decimal RequestStep(int percentagePoints)
+    {
         lock (sync)
         {
-            if (!ready || stopping) throw new InvalidOperationException("Brightness control is not connected.");
-            pending = Math.Clamp(percent, 10, 100);
-            revision++;
-            if (!running)
-            {
-                running = true;
-                pump = PumpAsync();
-            }
+            // Retain the latest intent even while its write is in flight. Successive
+            // key presses must not all start from the same stale read-back value.
+            QueueRequest(desiredPercent + percentagePoints);
+            return desiredPercent;
+        }
+    }
+
+    private void QueueRequest(decimal percent)
+    {
+        if (!ready || stopping) throw new InvalidOperationException("Brightness control is not connected.");
+        desiredPercent = Math.Clamp(percent, 10m, 100m);
+        pending = desiredPercent;
+        revision++;
+        if (!running)
+        {
+            running = true;
+            pump = PumpAsync();
         }
     }
 
@@ -148,7 +166,7 @@ internal sealed class BrightnessSliderController
                     result = await MonitorAccess.RunAsync<BrightnessReading?>(() =>
                     {
                         ITestMonitor selected;
-                        int requested;
+                        decimal requested;
                         lock (sync)
                         {
                             // Recheck after waiting for diagnostics or other native work.
@@ -177,7 +195,10 @@ internal sealed class BrightnessSliderController
                 lock (sync)
                 {
                     if (result is not null && version == revision && ready && !stopping)
+                    {
+                        desiredPercent = result.Value.Percent;
                         Updated?.Invoke(new(revision, result, null));
+                    }
                 }
             }
         }
@@ -236,10 +257,10 @@ internal sealed class BrightnessSliderController
         finally { operations.Release(); }
     }
 
-    internal static uint ToRaw(int percent, uint minimum, uint maximum)
+    internal static uint ToRaw(decimal percent, uint minimum, uint maximum)
     {
         if (maximum <= minimum) throw new InvalidOperationException("Invalid brightness range.");
-        var clamped = Math.Clamp(percent, 10, 100);
+        var clamped = Math.Clamp(percent, 10m, 100m);
         var range = maximum - minimum;
         var raw = minimum + (uint)decimal.Round(range * (decimal)clamped / 100m, 0, MidpointRounding.AwayFromZero);
         var floor = minimum + (uint)(((ulong)range + 9) / 10);

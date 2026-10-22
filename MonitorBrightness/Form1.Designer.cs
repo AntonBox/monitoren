@@ -9,6 +9,7 @@ partial class Form1
     private TrackBar brightnessSlider = null!;
     private Label percentageLabel = null!;
     private Label monitorLabel = null!;
+    private Label hotkeyLabel = null!;
     private TextBox statusBox = null!;
     private CheckBox confirmMonitor = null!;
     private Button refreshButton = null!;
@@ -65,6 +66,12 @@ partial class Form1
             AutoSize = true,
             Text = "Desktop brightness | HDR stays on | 10-100%\r\nSDR content only; percentage may differ from Windows."
         };
+        hotkeyLabel = new Label
+        {
+            AutoSize = true,
+            Text = "Hotkeys are starting...",
+            MaximumSize = new Size(430, 0)
+        };
         confirmMonitor = new CheckBox
         {
             AutoSize = true,
@@ -76,16 +83,17 @@ partial class Form1
         {
             ReadOnly = true, Multiline = true, ScrollBars = ScrollBars.Vertical,
             Dock = DockStyle.Fill, TabIndex = 3,
-            Text = "Confirm the external display and click Read / Refresh. Brightness changes only when you move the slider."
+            Text = "Confirm the external display and click Read / Refresh. Brightness changes only when you move the slider or press a registered shortcut."
         };
         var layout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
             ColumnCount = 1,
-            RowCount = 7
+            RowCount = 8
         };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
@@ -99,11 +107,12 @@ partial class Form1
         layout.Controls.Add(refreshButton, 0, 3);
         layout.Controls.Add(brightnessSlider, 0, 4);
         layout.Controls.Add(percentageLabel, 0, 5);
-        layout.Controls.Add(statusBox, 0, 6);
+        layout.Controls.Add(hotkeyLabel, 0, 6);
+        layout.Controls.Add(statusBox, 0, 7);
 
         AutoScaleDimensions = new SizeF(96, 96);
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(460, 310);
+        ClientSize = new Size(460, 355);
         Controls.Add(layout);
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         MaximizeBox = false;
