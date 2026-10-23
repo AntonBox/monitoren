@@ -76,6 +76,7 @@ internal sealed class BrightnessTestForm : Form
             operation = RestoreAsync();
             await operation;
         };
+        RetroTheme.Apply(this, "MONITOREN  /  ARCHIVED TEST");
     }
 
     private async Task TestAsync()

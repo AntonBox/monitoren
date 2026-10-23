@@ -6,6 +6,7 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Include="../../MonitorBrightness/Settings/AppSettings.cs" Link="AppSettings.cs" />
         <!-- Only fake APIs are invoked. Native imports are inspected, never called. -->
         <Compile Include="../../MonitorBrightness/Services/GlobalHotkeys.cs" Link="GlobalHotkeys.cs" />
         <Compile Include="../../MonitorBrightness/Native/HotkeyNative.cs" Link="HotkeyNative.cs" />

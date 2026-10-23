@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+
 namespace MonitorBrightness.Services;
 
 internal readonly record struct DisplayTargetId(uint AdapterLow, int AdapterHigh, uint Id);
@@ -41,15 +44,21 @@ internal sealed class SdrTestMonitor : ITestMonitor
         + "This is an application range, not detected panel limits. Percent may differ from Windows Settings.\r\n"
         + "No device paths/serial numbers are logged. No physical monitor handles are acquired.";
 
-    internal static SdrTestMonitor Open(ISdrDisplayApi api, Func<bool> topologyChanged)
+    internal static SdrTestMonitor Open(ISdrDisplayApi api, Func<bool> topologyChanged, string? expectedFingerprint = null)
     {
         if (topologyChanged()) throw new InvalidOperationException("Display configuration changed before preparation.");
-        var monitor = new SdrTestMonitor(api, ReadSoleExternal(api), topologyChanged);
+        var identity = ReadSoleExternal(api);
+        if (expectedFingerprint is not null && !string.Equals(Fingerprint(identity), expectedFingerprint, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("The active HDMI display does not match your saved selection. No brightness read or write sent. Open Settings and select the intended monitor explicitly.");
+        var monitor = new SdrTestMonitor(api, identity, topologyChanged);
         monitor.ValidateIdentity();
         return monitor;
     }
 
-    private static SdrDisplay ReadSoleExternal(ISdrDisplayApi api)
+    internal static string Fingerprint(SdrDisplay display) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(display.DevicePath.ToUpperInvariant())));
+
+    internal static SdrDisplay ReadSoleExternal(ISdrDisplayApi api)
     {
         var displays = api.GetActiveDisplays();
         if (displays.Count != 1)

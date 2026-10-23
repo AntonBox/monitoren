@@ -264,7 +264,7 @@ hotkey registration or native display calls were executed by these tests.
 The user confirmed all six [M5 manual checks](docs/M5-hotkeys-test.md) passed:
 confirmation gating, shortcuts with another app focused, rapid input, held-key
 and range limits, disconnect/reconfirmation, and conflict/Exit/relaunch behavior.
-M5 is validated. M6 is not started and awaits authorization. A local Git checkpoint
+M5 is validated. The user subsequently authorized "Complete only M6". A local Git checkpoint
 is recommended, subject to separate approval; no commit was made by the agent.
 
 ## M6 — Settings, persistence, robustness
@@ -276,6 +276,84 @@ is recommended, subject to separate approval; no commit was made by the agent.
 - [ ] Consider single-instance implementation; no forced termination.
 
 **Manual gate:** restart app, preferences persist, external display disconnect/reconnect does not change the wrong display.
+
+M6 implementation: Settings... in the tray menu provides a read-only display scan
+and explicit monitor choice, 1-20 point hotkey step (default 5), 0-95% minimum
+(default 10), and configurable shortcut pairs. The supported setup remains one
+active external HDMI display with HDR on and the laptop panel disabled. A saved
+path hash is checked before brightness access; no index, model-name-only match,
+or automatic replacement is used. A changed Windows path requires reselection.
+
+Versioned JSON is stored at `%LOCALAPPDATA%\MonitorBrightness\settings.json` only
+on Save. Loading never reads/writes display brightness. Invalid, oversized or
+unreadable settings use safe defaults and show a warning; the original is left
+unchanged. Same-directory replacement preserves the previous document as
+`settings.json.bak`. Failed saves/shortcut conflicts do not apply new preferences.
+Settings editing releases hotkeys, disables control and cancels pending writes;
+Cancel restores the prior shortcut pair. The user subsequently requested removal
+of repeated monitor confirmation; the next action reconnects to the saved target.
+
+A per-user/session named mutex politely rejects a duplicate launch without
+killing any process. Exit releases shortcuts and completes native cleanup even
+when a cleanup operation reports an error. No packages, startup integration,
+installer, publication, automatic brightness restore or Git commit added.
+
+Automated verification: Windows Debug build succeeded with 0 warnings/errors;
+24 M6 checks, 15 M5 checks, 19 M4 checks and 45 M3 checks passed. Settings tests
+write only ignored fixture files under the test output directory and inject fake
+display/hotkey APIs. The agent did not launch the app, write the user's real
+settings, register global keys or send native display commands. Manual checks
+are pending in [M6 manual guide](docs/M6-settings-test.md); checkboxes remain
+unchecked until user confirmation. M7 is not started.
+Native-declaration layout/offset/import checks and `git diff --check` also passed.
+
+M6 user feedback: all behavior was reported working except the repeated
+confirmation requirement. Per explicit request, removed the popup checkbox.
+Opening the popup connects/reads the saved monitor automatically; a first hotkey
+connects/reads and then applies its requested step without opening the popup.
+Settings needs confirmation only for a new/different selection. Each reconnection
+still checks saved identity, sole HDMI target and active HDR. Pending hotkeys are
+discarded if Settings, shutdown or a topology change intervenes. No startup
+writes, automatic retargeting or retry loops. Revised interaction awaits a user
+smoke check; M7 is not started.
+
+## User-requested visual polish before M7
+
+- [ ] Winamp-inspired appearance across the slider and application windows;
+  awaiting manual visual/input checks on the user's laptop.
+
+Implemented shared dark/beveled styling, green readouts, a segmented native
+TrackBar with gold thumb, draggable striped headers, a matching tray icon/menu,
+and informational dialogs. Existing brightness, identity, settings and hotkey
+logic is retained. High contrast falls back to native styling. OS notifications
+and native scrollbars remain Windows-rendered.
+
+Final Debug build succeeded with 0 warnings and 0 errors; `git diff --check`
+passed. All 103 existing simulated checks passed (M3: 45, M4: 19, M5: 15, M6: 24).
+Off-screen previews of the real forms were rendered with sample data and no
+display commands, real settings access or global hotkey registration. The preview
+also checks native custom-draw structure size/offsets; a 150% layout enlargement
+is only a visual aid, not verification of Windows per-monitor DPI behavior.
+See [visual test guide](docs/retro-theme-test.md). M7 has not started.
+
+Slider regression follow-up: the user reported working hotkeys but no brightness
+change from the styled slider. Reproduced on a hidden native TrackBar: reading
+`Value` during custom painting updated WinForms' internal value cache before its
+scroll handler, suppressing `ValueChanged`. Painting now uses a separate value
+cached after change detection and schedules a repaint. Brightness/controller
+logic and the visual theme are unchanged. The failing drag regression now passes,
+along with all 10 new UI checks and 103 existing checks. Debug build succeeds
+with 0 warnings/errors. No monitor commands were sent; visible slider operation
+still awaits the user's check. M7 remains unstarted.
+
+Compact-popup follow-up: at the user's request, removed Refresh, the permanent
+status/success section and desktop/HDR/range explanation. Reduced normal height;
+only errors or below-minimum warnings expand a notice area. Reopening still
+reads current brightness; reopening or a shortcut provides manual retry.
+Debug build was blocked by the running app's EXE lock (MSB3027/MSB3021);
+the separate Release build succeeded with 0 warnings/errors. All 113 existing
+checks passed; normal/error previews were inspected without monitor access.
+Manual visual verification remains pending; M7 has not started.
 
 ## M7 — Release
 

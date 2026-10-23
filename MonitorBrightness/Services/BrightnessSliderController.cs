@@ -15,6 +15,7 @@ internal sealed class BrightnessSliderController
     private BrightnessReading range;
     private decimal? pending;
     private decimal desiredPercent;
+    private int safetyMinimum = 10;
     private long revision;
     private bool ready;
     private bool stopping;
@@ -25,6 +26,16 @@ internal sealed class BrightnessSliderController
     internal bool Ready { get { lock (sync) return ready && !stopping; } }
     internal long Revision { get { lock (sync) return revision; } }
 
+    internal void SetSafetyMinimum(int percent)
+    {
+        if (percent is < 0 or > 95) throw new InvalidOperationException("Brightness minimum must be 0-95%.");
+        lock (sync)
+        {
+            if (ready || running) throw new InvalidOperationException("Disconnect and finish pending work before changing the minimum.");
+            safetyMinimum = percent;
+        }
+    }
+
     internal BrightnessSliderController(Func<ITestMonitor> openMonitor,
         Func<CancellationToken, Task>? debounce = null)
     {
@@ -34,7 +45,7 @@ internal sealed class BrightnessSliderController
 
     internal async Task<(string Name, BrightnessReading Reading)> ConnectAsync(bool confirmed)
     {
-        if (!confirmed) throw new InvalidOperationException("Confirm the external AOC before enabling brightness control.");
+        if (!confirmed) throw new InvalidOperationException("Confirm the selected external monitor before enabling brightness control.");
         long version;
         lock (sync)
         {
@@ -133,7 +144,7 @@ internal sealed class BrightnessSliderController
     private void QueueRequest(decimal percent)
     {
         if (!ready || stopping) throw new InvalidOperationException("Brightness control is not connected.");
-        desiredPercent = Math.Clamp(percent, 10m, 100m);
+        desiredPercent = Math.Clamp(percent, safetyMinimum, 100m);
         pending = desiredPercent;
         revision++;
         if (!running)
@@ -179,7 +190,7 @@ internal sealed class BrightnessSliderController
                         current.Validate();
                         if (current.Minimum != range.Minimum || current.Maximum != range.Maximum)
                             throw new InvalidOperationException("Brightness range changed. No write sent.");
-                        var raw = ToRaw(requested, current.Minimum, current.Maximum);
+                        var raw = ToRaw(requested, current.Minimum, current.Maximum, safetyMinimum);
                         lock (sync)
                             if (!ready || stopping || version != revision) return null;
                         if (raw == current.Current) return current;
@@ -229,7 +240,7 @@ internal sealed class BrightnessSliderController
 
     internal async Task DisconnectAsync()
     {
-        Invalidate("Control disconnected. Confirm the AOC and read its brightness to reconnect.");
+        Invalidate("Control disconnected. Confirm the selected external monitor and read its brightness to reconnect.");
         await operations.WaitAsync();
         try
         {
@@ -257,13 +268,14 @@ internal sealed class BrightnessSliderController
         finally { operations.Release(); }
     }
 
-    internal static uint ToRaw(decimal percent, uint minimum, uint maximum)
+    internal static uint ToRaw(decimal percent, uint minimum, uint maximum, int safetyMinimum = 10)
     {
         if (maximum <= minimum) throw new InvalidOperationException("Invalid brightness range.");
-        var clamped = Math.Clamp(percent, 10m, 100m);
+        if (safetyMinimum is < 0 or > 95) throw new InvalidOperationException("Invalid brightness minimum.");
+        var clamped = Math.Clamp(percent, safetyMinimum, 100m);
         var range = maximum - minimum;
         var raw = minimum + (uint)decimal.Round(range * (decimal)clamped / 100m, 0, MidpointRounding.AwayFromZero);
-        var floor = minimum + (uint)(((ulong)range + 9) / 10);
+        var floor = minimum + (uint)(((ulong)range * (uint)safetyMinimum + 99) / 100);
         return Math.Max(raw, floor);
     }
 }

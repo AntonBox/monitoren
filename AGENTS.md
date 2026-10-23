@@ -68,6 +68,27 @@ including while the popup is hidden. Keep HDR on, the 10-100% floor/range,
 identity checks, and error invalidation. Report conflicts and unregister on Exit.
 Settings, persistence, and configurable shortcut UI remain M6; no automatic writes.
 
+### Approved M6 continuation
+
+After confirming all six M5 checks, the user authorized "Complete only M6".
+Provide local JSON preferences for an explicitly chosen external HDMI display,
+hotkeys, step size and an optional safety minimum. Keep the single-active-HDMI
+restriction and the same verified SDR backend. Save a hash of the Windows device
+path, not raw paths/serial numbers, and reject mismatches; a changed path requires
+explicit reselection. Saved preferences never authorize startup writes or restore
+brightness. Handle invalid JSON and conflicting shortcuts visibly. A per-user/session
+single-instance guard may reject a duplicate politely; do not terminate processes.
+Do not implement M7 publishing or startup integration.
+
+M6 usability amendment: the user reported M6 working but explicitly requested
+removal of repeated confirmation before brightness control. The saved Settings
+selection is ongoing authorization for that monitor. Remove the popup checkbox;
+opening it reads/connects automatically, and a hotkey can connect/read then apply
+that explicit request without first opening the popup. After Settings/errors or
+topology changes, validate the same saved identity on the next user action; never
+silently select another display. No startup writes or retry loops. Only a new or
+changed monitor choice in Settings requires its selection confirmation.
+
 - Phase 1 hardware access is **read-only diagnostics**: enumerate monitors and attempt capability/brightness reads. **Never write brightness before the user authorizes a single test on a selected external monitor.**
 - **Never write to all monitors** by default. Do not assume monitor index ordering is stable after hotplug/reboot.
 - **Do not change the internal laptop display** in MVP. If uncertain whether a display is external/physical, require explicit selection/confirmation.
@@ -81,6 +102,15 @@ Settings, persistence, and configurable shortcut UI remain M6; no automatic writ
 - If hotkeys conflict, report registration failure and offer different key combinations. Unregister them reliably on shutdown.
 
 ## UI and reliability
+
+### Approved pre-M7 visual pass
+
+The user requested a Winamp-inspired slider and matching application styling
+before M7. Use code-drawn WinForms styling without new packages: dark panels,
+green readouts, gold slider thumb, beveled buttons and striped draggable headers.
+Preserve native slider input/accessibility and all existing monitor authorization,
+settings and brightness behavior. Fall back to native styling in high contrast.
+This authorizes presentation changes only; M7 remains unstarted.
 
 - Use one tray icon; left click toggles popup, right click shows menu with Open, Settings (later milestone), Exit.
 - Closing popup does **not** terminate process. Explicit Exit fully disposes `NotifyIcon`, removes hotkeys, and stops the application.

@@ -6,13 +6,12 @@ partial class Form1
     ///  Required designer variable.
     /// </summary>
     private System.ComponentModel.IContainer components = null!;
-    private TrackBar brightnessSlider = null!;
+    private UI.RetroTrackBar brightnessSlider = null!;
     private Label percentageLabel = null!;
     private Label monitorLabel = null!;
     private Label hotkeyLabel = null!;
-    private TextBox statusBox = null!;
-    private CheckBox confirmMonitor = null!;
-    private Button refreshButton = null!;
+    private TextBox errorBox = null!;
+    private TableLayoutPanel popupLayout = null!;
 
     /// <summary>
     ///  Clean up any resources being used.
@@ -36,7 +35,7 @@ partial class Form1
     private void InitializeComponent()
     {
         components = new System.ComponentModel.Container();
-        brightnessSlider = new TrackBar
+        brightnessSlider = new UI.RetroTrackBar
         {
             Minimum = 10,
             Maximum = 100,
@@ -52,19 +51,18 @@ partial class Form1
         percentageLabel = new Label
         {
             Text = "Brightness: not read",
-            AutoSize = true,
-            Anchor = AnchorStyles.Left
+            AutoSize = false,
+            Dock = DockStyle.Fill,
+            TextAlign = ContentAlignment.MiddleLeft,
+            Padding = new Padding(12, 0, 8, 0),
+            Height = 58
         };
         monitorLabel = new Label
         {
-            Text = "AOC Q27G42XE - confirmation required",
+            Text = "No monitor selected - open Settings",
             AutoSize = true,
+            MaximumSize = new Size(430, 0),
             Anchor = AnchorStyles.Left
-        };
-        var explanation = new Label
-        {
-            AutoSize = true,
-            Text = "Desktop brightness | HDR stays on | 10-100%\r\nSDR content only; percentage may differ from Windows."
         };
         hotkeyLabel = new Label
         {
@@ -72,54 +70,50 @@ partial class Form1
             Text = "Hotkeys are starting...",
             MaximumSize = new Size(430, 0)
         };
-        confirmMonitor = new CheckBox
-        {
-            AutoSize = true,
-            Text = "Only my AOC HDMI display is active; laptop screen is off.",
-            TabIndex = 0
-        };
-        refreshButton = new Button { Text = "Read / Refresh", AutoSize = true, Enabled = false, TabIndex = 1 };
-        statusBox = new TextBox
+        errorBox = new TextBox
         {
             ReadOnly = true, Multiline = true, ScrollBars = ScrollBars.Vertical,
             Dock = DockStyle.Fill, TabIndex = 3,
-            Text = "Confirm the external display and click Read / Refresh. Brightness changes only when you move the slider or press a registered shortcut."
+            Visible = false
         };
-        var layout = new TableLayoutPanel
+        popupLayout = new TableLayoutPanel
         {
             Dock = DockStyle.Fill,
             Padding = new Padding(12),
             ColumnCount = 1,
-            RowCount = 8
+            RowCount = 5
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-        layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.Controls.Add(monitorLabel, 0, 0);
-        layout.Controls.Add(explanation, 0, 1);
-        layout.Controls.Add(confirmMonitor, 0, 2);
-        layout.Controls.Add(refreshButton, 0, 3);
-        layout.Controls.Add(brightnessSlider, 0, 4);
-        layout.Controls.Add(percentageLabel, 0, 5);
-        layout.Controls.Add(hotkeyLabel, 0, 6);
-        layout.Controls.Add(statusBox, 0, 7);
+        popupLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        popupLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Model
+        popupLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 58)); // LCD
+        popupLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 44)); // Slider
+        popupLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize)); // Shortcuts
+        popupLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 0)); // Errors only
+        popupLayout.Controls.Add(monitorLabel, 0, 0);
+        popupLayout.Controls.Add(percentageLabel, 0, 1);
+        popupLayout.Controls.Add(brightnessSlider, 0, 2);
+        popupLayout.Controls.Add(hotkeyLabel, 0, 3);
+        popupLayout.Controls.Add(errorBox, 0, 4);
 
         AutoScaleDimensions = new SizeF(96, 96);
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(460, 355);
-        Controls.Add(layout);
+        ClientSize = new Size(460, 185);
+        Controls.Add(popupLayout);
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         MaximizeBox = false;
         MinimizeBox = false;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         Text = "Monitor Brightness";
+        UI.RetroTheme.Apply(this, "MONITOREN  /  DESKTOP AMP");
+        if (!SystemInformation.HighContrast)
+        {
+            percentageLabel.BackColor = UI.RetroTheme.Display;
+            percentageLabel.ForeColor = UI.RetroTheme.Green;
+            UI.RetroTheme.SetFont(percentageLabel, "Consolas", 13, FontStyle.Bold);
+            percentageLabel.Paint += (_, e) => UI.RetroTheme.Bevel(e.Graphics, percentageLabel.ClientRectangle, true);
+            monitorLabel.ForeColor = UI.RetroTheme.Gold;
+        }
     }
 
     #endregion

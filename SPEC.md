@@ -34,6 +34,22 @@ confirmed SDR connection and queue, stepping by five percentage points with a
 10-100% clamp. They work with the popup hidden after confirmation/read. Held
 keys do not auto-repeat. Shortcut customization and persistence remain M6.
 
+The user validated M5 and authorized M6. Settings now select the supported sole
+external HDMI display and persist its path hash/name, a 1-20 point step, a 0-95%
+safety minimum (default 10%), and two distinct Ctrl/Alt/optional-Shift shortcuts.
+The approved single-display/HDR restrictions remain; this does not introduce
+multi-monitor control. Startup loads preferences without display access. At the
+user's request, saved monitor selection is ongoing authorization: the popup has
+no confirmation checkbox and reads/connects when opened; a hotkey connects/reads
+on demand before applying its change. Settings editing pauses control and cancels
+pending writes; the next action reconnects to the same verified saved target.
+Only selecting a new/different monitor in Settings requires confirmation. Errors
+and topology changes invalidate the connection, never the identity checks; the
+next explicit action can try again once. No automatic writes or retry loops.
+Failed validation, registration or disk saves leave previous preferences intact.
+Invalid JSON is ignored with a warning and preserved until an explicit Save,
+which keeps the previous file as a backup. One instance per user/session is allowed.
+
 ## V1 features
 
 1. Runs in notification area / tray, with no permanently visible taskbar window.
@@ -53,6 +69,18 @@ keys do not auto-repeat. Shortcut customization and persistence remain M6.
 - Rewriting UI in WPF/WinUI, dependencies just for styling.
 
 ## Expected UX
+
+User-requested pre-M7 styling: a classic Winamp-inspired dark skin across the
+popup, preferences, diagnostics, tray menu and informational dialogs. Use a
+green inset percentage readout, segmented slider with a gold thumb, beveled
+controls and striped draggable title bars. Keep native slider keyboard/input
+behavior. High contrast uses native styling; Windows notifications and native
+scrollbars remain system-rendered. No brightness or settings semantics change.
+
+The user requested a compact popup without Refresh, routine success/status text,
+or the desktop/HDR/range description. Keep monitor name, SDR percentage, slider
+and shortcut hints. Opening still reads the current value. Only errors and safety
+warnings expand a selectable notice area; reopening or a shortcut retries once.
 
 - Tray icon: sun or monitor. Left click opens compact popup by notification area.
 - One slider and percent readout. `+`/`-` hotkeys work with popup closed.

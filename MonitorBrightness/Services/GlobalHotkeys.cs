@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using MonitorBrightness.Settings;
 
 namespace MonitorBrightness.Services;
 
@@ -19,46 +20,49 @@ internal sealed class GlobalHotkeys(IHotkeyApi api, nint window)
     internal const uint PageDown = 0x22;
     private readonly HashSet<int> registered = [];
     private bool started;
+    private AppSettings settings = new();
     internal bool Enabled { get; private set; }
     internal string Status { get; private set; } = "Hotkeys are not registered.";
 
-    internal void Start()
+    internal void Start(AppSettings? configuration = null)
     {
         if (started) return;
+        settings = configuration ?? new();
+        settings.Validate();
         started = true;
-        foreach (var (id, key, name) in new[]
+        foreach (var (id, chord) in new[]
         {
-            (IncreaseId, PageUp, "Ctrl+Alt+Shift+PageUp"),
-            (DecreaseId, PageDown, "Ctrl+Alt+Shift+PageDown")
+            (IncreaseId, settings.Increase),
+            (DecreaseId, settings.Decrease)
         })
         {
-            if (!api.Register(window, id, Modifiers | NoRepeat, key, out var error))
+            if (!api.Register(window, id, chord.Modifiers | NoRepeat, chord.Key, out var error))
             {
                 var cleanup = Stop();
-                Status = $"Hotkeys unavailable: {name} could not be registered. {DescribeError(error)}\r\n"
+                Status = $"Hotkeys unavailable: {chord} could not be registered. {DescribeError(error)}\r\n"
                     + "Another app or another copy of Monitor Brightness may own this shortcut. "
                     + "Release the shortcut or exit the other copy, then restart this app. The slider still works.\r\n"
-                    + "If these keys must stay assigned elsewhere, ask to use Ctrl+Alt+Shift+Up/Down instead."
+                    + "You can choose different combinations in Settings."
                     + cleanup;
                 return;
             }
             registered.Add(id);
         }
         Enabled = true;
-        Status = "Ctrl+Alt+Shift+PageUp: +5 percentage points\r\n"
-            + "Ctrl+Alt+Shift+PageDown: -5 percentage points\r\n"
-            + "Confirm the AOC and click Read / Refresh first. Works with the popup closed. "
-            + "Tap for each step; holding a key does not repeat. Range: 10-100%. HDR stays on.";
+        Status = $"{settings.Increase}: +{settings.StepPercent} percentage points\r\n"
+            + $"{settings.Decrease}: -{settings.StepPercent} percentage points\r\n"
+            + "Uses your saved monitor selection, including with the popup closed. "
+            + $"Tap for each step; holding a key does not repeat. Range: {settings.SafetyMinimum}-100%. HDR stays on.";
     }
 
     internal int StepForMessage(nint id, nint keyData)
     {
         if (!Enabled) return 0;
         var data = unchecked((uint)keyData.ToInt64());
-        if ((data & 0xFFFF) != Modifiers) return 0;
+        var modifiers = data & 0xFFFF;
         var key = data >> 16;
-        if (id == IncreaseId && key == PageUp) return 5;
-        if (id == DecreaseId && key == PageDown) return -5;
+        if (id == IncreaseId && key == settings.Increase.Key && modifiers == settings.Increase.Modifiers) return settings.StepPercent;
+        if (id == DecreaseId && key == settings.Decrease.Key && modifiers == settings.Decrease.Modifiers) return -settings.StepPercent;
         return 0;
     }
 

@@ -1,5 +1,8 @@
 # M5 — Global brightness hotkeys
 
+This records the validated M5 checkpoint. For the current settings and
+single-instance behavior, use the [M6 guide](M6-settings-test.md).
+
 Close any older copy using its tray menu's Exit. From PowerShell:
 
 ```powershell

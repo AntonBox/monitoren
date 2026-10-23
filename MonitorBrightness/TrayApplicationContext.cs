@@ -1,3 +1,4 @@
+using MonitorBrightness.Settings;
 using MonitorBrightness.UI;
 
 namespace MonitorBrightness;
@@ -7,31 +8,50 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private readonly Form1 popup = new();
     private readonly ContextMenuStrip menu = new();
     private readonly NotifyIcon trayIcon;
-    private readonly HotkeyWindow? hotkeys;
-    private readonly string hotkeyStatus;
+    private readonly Icon trayArtwork = RetroTheme.CreateTrayIcon();
+    private HotkeyWindow? hotkeys;
+    private string hotkeyStatus = "Hotkeys are starting...";
+    private readonly SettingsStore store = new(SettingsStore.DefaultPath);
+    private AppSettings settings;
+    private string? settingsWarning;
     private DiagnosticsForm? diagnostics;
     private bool exiting;
     private bool hotkeyNoticeShown;
+    private bool settingsOpen;
 
     public TrayApplicationContext()
     {
+        // Load bounded local JSON before showing any window; this does not contact a display.
+        var loaded = store.Load();
+        settings = loaded.Settings;
+        settingsWarning = loaded.Warning;
+        popup.ApplySettings(settings);
         menu.Items.Add("Open", null, (_, _) => ShowPopup());
+        menu.Items.Add("Settings...", null, async (_, _) => await ShowSettingsAsync());
         menu.Items.Add("Read-only diagnostics", null, (_, _) => ShowDiagnostics());
-        menu.Items.Add("Hotkeys...", null, (_, _) => MessageBox.Show(hotkeyStatus,
-            "Monitor Brightness - Hotkeys", MessageBoxButtons.OK, MessageBoxIcon.Information));
+        menu.Items.Add("Hotkeys...", null, (_, _) => RetroMessage.Show(hotkeyStatus,
+            "Monitoren / Hotkeys"));
         menu.Items.Add("Exit", null, async (_, _) => await ExitAsync());
+        RetroTheme.StyleMenu(menu);
 
         trayIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = trayArtwork,
             Text = "Monitor Brightness",
             ContextMenuStrip = menu,
             Visible = true
         };
         trayIcon.MouseClick += OnTrayMouseClick;
+        RegisterCurrentHotkeys();
+        if (settingsWarning is not null)
+            trayIcon.ShowBalloonTip(5000, "Settings need attention", "Safe defaults are in use. Open Settings for details.", ToolTipIcon.Warning);
+    }
+
+    private void RegisterCurrentHotkeys()
+    {
         try
         {
-            hotkeys = new HotkeyWindow(OnHotkeyStep);
+            hotkeys = new HotkeyWindow(OnHotkeyStep, settings);
             hotkeyStatus = hotkeys.Status;
         }
         catch (System.ComponentModel.Win32Exception exception)
@@ -44,10 +64,64 @@ internal sealed class TrayApplicationContext : ApplicationContext
                 "Open Hotkeys... in the tray menu for the error and recovery steps. The slider still works.", ToolTipIcon.Warning);
     }
 
-    private void OnHotkeyStep(int step)
+    private async Task ShowSettingsAsync()
     {
-        if (exiting) return;
-        var reason = popup.RequestHotkeyStep(step);
+        if (exiting || settingsOpen) return;
+        settingsOpen = true;
+        menu.Enabled = false;
+        popup.Hide();
+        hotkeys?.Dispose();
+        if (!string.IsNullOrEmpty(hotkeys?.ShutdownError)) settingsWarning = hotkeys.ShutdownError;
+        hotkeys = null;
+        try
+        {
+            await popup.BeginSettingsAsync();
+            using var dialog = new SettingsForm(settings, SaveSettingsAsync, settingsWarning);
+            dialog.ShowDialog();
+        }
+        catch (Exception exception)
+        {
+            RetroMessage.Show(exception.Message, "Settings could not be opened");
+        }
+        finally
+        {
+            if (!exiting)
+            {
+                if (hotkeys is null) RegisterCurrentHotkeys(); // Cancel restores the previous pair.
+                popup.SetHotkeyStatus(hotkeys?.Enabled == true);
+                popup.EndSettings();
+                menu.Enabled = true;
+            }
+            settingsOpen = false;
+        }
+    }
+
+    private async Task SaveSettingsAsync(AppSettings candidate)
+    {
+        candidate.Validate();
+        HotkeyWindow? proposed = null;
+        try
+        {
+            proposed = new HotkeyWindow(OnHotkeyStep, candidate);
+            if (!proposed.Enabled) throw new InvalidOperationException(proposed.Status);
+            await Task.Run(() => store.Save(candidate));
+            // Both registration and disk save succeeded. No brightness write is involved.
+            settings = candidate;
+            settingsWarning = null;
+            hotkeys = proposed;
+            proposed = null;
+            hotkeyStatus = hotkeys.Status;
+            popup.ApplySettings(settings);
+            popup.SetHotkeyStatus(true);
+        }
+        finally { proposed?.Dispose(); }
+    }
+
+    private async void OnHotkeyStep(int step)
+    {
+        if (exiting || settingsOpen) return;
+        var reason = await popup.RequestHotkeyStepAsync(step);
+        if (exiting || settingsOpen) return;
         if (reason is null) hotkeyNoticeShown = false;
         else if (!hotkeyNoticeShown)
         {
@@ -58,7 +132,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void OnTrayMouseClick(object? sender, MouseEventArgs e)
     {
-        if (exiting || e.Button != MouseButtons.Left)
+        if (exiting || settingsOpen || e.Button != MouseButtons.Left)
         {
             return;
         }
@@ -75,11 +149,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
     private void ShowPopup()
     {
-        if (!exiting) popup.ShowNearTray();
+        if (!exiting && !settingsOpen) popup.ShowNearTray();
     }
 
     private void ShowDiagnostics()
     {
+        if (exiting || settingsOpen) return;
         diagnostics ??= new DiagnosticsForm();
         diagnostics.Show();
         diagnostics.Activate();
@@ -97,16 +172,19 @@ internal sealed class TrayApplicationContext : ApplicationContext
         menu.Enabled = false;
         popup.Hide();
         trayIcon.Text = "Monitor Brightness - finishing current operation";
-        await popup.StopAsync();
-
-        if (diagnostics is not null)
+        var errors = new List<string>();
+        try { await popup.StopAsync(); }
+        catch (Exception exception) { errors.Add(exception.Message); }
+        try
         {
-            await diagnostics.StopAsync();
+            if (diagnostics is not null) await diagnostics.StopAsync();
         }
+        catch (Exception exception) { errors.Add(exception.Message); }
 
         if (!string.IsNullOrEmpty(hotkeys?.ShutdownError))
-            MessageBox.Show("Hotkey cleanup reported:" + hotkeys.ShutdownError,
-                "Monitor Brightness", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            errors.Add(hotkeys.ShutdownError);
+        if (errors.Count != 0)
+            RetroMessage.Show("Shutdown cleanup reported:\r\n" + string.Join("\r\n", errors), "Monitor Brightness");
 
         ExitThread();
     }
@@ -127,6 +205,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             trayIcon.Visible = false;
             trayIcon.MouseClick -= OnTrayMouseClick;
             trayIcon.Dispose();
+            trayArtwork.Dispose();
             menu.Dispose();
             popup.Dispose();
             diagnostics?.Dispose();

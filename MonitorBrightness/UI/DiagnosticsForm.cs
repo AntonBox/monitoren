@@ -41,7 +41,7 @@ internal sealed class DiagnosticsForm : Form
             layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         }
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        layout.Controls.Add(new Label { Text = "READ-ONLY: monitor identity may be ambiguous. The brightness slider remains DEMO.", AutoSize = true }, 0, 0);
+        layout.Controls.Add(new Label { Text = "READ-ONLY DDC/CI DIAGNOSTICS  /  No brightness changes from this window.", AutoSize = true }, 0, 0);
         layout.Controls.Add(buttons, 0, 1);
         layout.Controls.Add(new Label { Text = "Optional: choose the entry you recognize as external for the copied report (this scan only).", AutoSize = true }, 0, 2);
         layout.Controls.Add(candidatePicker, 0, 3);
@@ -60,6 +60,8 @@ internal sealed class DiagnosticsForm : Form
             await scanTask;
         };
         copyButton.Click += (_, _) => CopyDiagnostics();
+        RetroTheme.Apply(this, "MONITOREN  /  DIAGNOSTICS");
+        if (!SystemInformation.HighContrast) RetroTheme.SetFont(output, "Consolas", 10, FontStyle.Regular);
     }
 
     private async Task RunScanAsync()

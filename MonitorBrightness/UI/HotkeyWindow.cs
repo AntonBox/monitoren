@@ -1,5 +1,6 @@
 using MonitorBrightness.Native;
 using MonitorBrightness.Services;
+using MonitorBrightness.Settings;
 
 namespace MonitorBrightness.UI;
 
@@ -14,12 +15,12 @@ internal sealed class HotkeyWindow : NativeWindow, IDisposable
     internal string Status => hotkeys.Status;
     internal string ShutdownError { get; private set; } = "";
 
-    internal HotkeyWindow(Action<int> onStep)
+    internal HotkeyWindow(Action<int> onStep, AppSettings? settings = null)
     {
         this.onStep = onStep;
         CreateHandle(new CreateParams { Caption = "MonitorBrightness.Hotkeys", Parent = new nint(-3) });
         hotkeys = new GlobalHotkeys(new HotkeyNative(), Handle);
-        try { hotkeys.Start(); }
+        try { hotkeys.Start(settings); }
         catch { Dispose(); throw; }
     }
 
