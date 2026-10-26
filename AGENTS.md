@@ -103,6 +103,27 @@ changed monitor choice in Settings requires its selection confirmation.
 
 ## UI and reliability
 
+### Approved M7 continuation
+
+The user authorized proceeding to M7. Build/test Release, publish locally as a
+self-contained single-file win-x64 executable without trimming, and document
+usage and limitations. Preserve the existing opt-in startup behavior; do not
+enable, disable or retarget startup as part of publishing. Human checks of the
+published EXE, including tray behavior and Exit, remain required for acceptance.
+No Git commit, push, external release or upload is authorized by this milestone.
+
+### Approved optional Windows startup
+
+The user explicitly requested a working Settings option to start the app with
+Windows. This supersedes the earlier startup exclusion for this feature only.
+Provide opt-in startup after sign-in for the current user through the app's own
+HKCU Run value. Only explicit Settings Save may add/update/remove that entry;
+opening Settings, loading JSON and launching the app never repair or create it.
+Keep startup off when no entry exists. No admin, services, scheduled tasks,
+brightness restore or automatic display writes. Do not alter Windows'
+StartupApproved overrides. Test with a fake entry; leave real enabling to the
+user. The rest of M7 publishing remains separately authorized work.
+
 ### Approved pre-M7 visual pass
 
 The user requested a Winamp-inspired slider and matching application styling

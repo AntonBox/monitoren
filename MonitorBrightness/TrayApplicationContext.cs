@@ -12,6 +12,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
     private HotkeyWindow? hotkeys;
     private string hotkeyStatus = "Hotkeys are starting...";
     private readonly SettingsStore store = new(SettingsStore.DefaultPath);
+    private readonly StartupSettings startup = new(new WindowsStartupEntry(), () => Environment.ProcessPath, File.Exists);
     private AppSettings settings;
     private string? settingsWarning;
     private DiagnosticsForm? diagnostics;
@@ -76,7 +77,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
         try
         {
             await popup.BeginSettingsAsync();
-            using var dialog = new SettingsForm(settings, SaveSettingsAsync, settingsWarning);
+            var startupEnabled = await Task.Run(() => startup.Enabled);
+            using var dialog = new SettingsForm(settings, SaveSettingsAsync, settingsWarning, startupEnabled);
             dialog.ShowDialog();
         }
         catch (Exception exception)
@@ -96,7 +98,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
-    private async Task SaveSettingsAsync(AppSettings candidate)
+    private async Task SaveSettingsAsync(AppSettings candidate, bool startWithWindows)
     {
         candidate.Validate();
         HotkeyWindow? proposed = null;
@@ -104,8 +106,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             proposed = new HotkeyWindow(OnHotkeyStep, candidate);
             if (!proposed.Enabled) throw new InvalidOperationException(proposed.Status);
-            await Task.Run(() => store.Save(candidate));
-            // Both registration and disk save succeeded. No brightness write is involved.
+            await Task.Run(() => startup.Save(startWithWindows, () => store.Save(candidate)));
+            // Shortcuts, startup preference and disk save succeeded. No brightness write is involved.
             settings = candidate;
             settingsWarning = null;
             hotkeys = proposed;

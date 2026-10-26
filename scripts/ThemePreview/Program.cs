@@ -36,11 +36,11 @@ internal static class Program
             throw new InvalidOperationException("Custom-draw native layout is incorrect.");
         var settingsType = assembly.GetType("MonitorBrightness.Settings.AppSettings")!;
         var settings = JsonSerializer.Deserialize("{}", settingsType)!;
-        var applyType = typeof(Func<,>).MakeGenericType(settingsType, typeof(Task));
+        var applyType = typeof(Func<,,>).MakeGenericType(settingsType, typeof(bool), typeof(Task));
         var method = typeof(Program).GetMethod(nameof(NoSave), BindingFlags.NonPublic | BindingFlags.Static)!.MakeGenericMethod(settingsType);
         var apply = method.CreateDelegate(applyType);
         using var preferences = (Form)Activator.CreateInstance(assembly.GetType("MonitorBrightness.UI.SettingsForm")!,
-            BindingFlags.Instance | BindingFlags.NonPublic, null, [settings, apply, null], null)!;
+            BindingFlags.Instance | BindingFlags.NonPublic, null, [settings, apply, null, false], null)!;
         Render(preferences, Path.Combine(output, "settings.png"));
         using var diagnostics = (Form)Activator.CreateInstance(assembly.GetType("MonitorBrightness.UI.DiagnosticsForm")!, nonPublic: true)!;
         Field<TextBox>(diagnostics, "output").Text = "READ-ONLY DIAGNOSTICS\r\n\r\nNo scan has been run.\r\nClick Run read-only scan to inspect your display.";
@@ -50,7 +50,7 @@ internal static class Program
         Render(preferences, Path.Combine(output, "settings-layout-150.png"));
         Console.WriteLine($"Rendered five previews to {output}. No native display calls, settings changes or hotkey registrations.");
     }
-    private static Task NoSave<T>(T _) => throw new InvalidOperationException("Preview must never save settings.");
+    private static Task NoSave<T>(T _, bool startup) => throw new InvalidOperationException("Preview must never save settings.");
     private static T Field<T>(object instance, string name) => (T)instance.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(instance)!;
     private static void Render(Form form, string path)
     {

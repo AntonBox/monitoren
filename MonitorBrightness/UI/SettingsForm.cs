@@ -7,6 +7,7 @@ internal sealed class SettingsForm : Form
 {
     private readonly ComboBox monitors = new() { DropDownStyle = ComboBoxStyle.DropDownList, Dock = DockStyle.Fill };
     private readonly CheckBox confirm = new() { Text = "I confirm the selected monitor is my external HDMI display.", AutoSize = true };
+    private readonly CheckBox startWithWindows = new() { Text = "Start with Windows (when I sign in)", AutoSize = true };
     private readonly NumericUpDown step = new() { Minimum = 1, Maximum = 20, Width = 80 };
     private readonly NumericUpDown floor = new() { Minimum = 0, Maximum = 95, Width = 80 };
     private readonly HotkeyEditor increase;
@@ -15,25 +16,26 @@ internal sealed class SettingsForm : Form
     private readonly Button save = new() { Text = "Save", AutoSize = true };
     private readonly Button cancel = new() { Text = "Cancel", AutoSize = true };
     private readonly TextBox status = new() { ReadOnly = true, Multiline = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill };
-    private readonly Func<AppSettings, Task> apply;
+    private readonly Func<AppSettings, bool, Task> apply;
     private readonly MonitorPreference? originalMonitor;
     private readonly TableLayoutPanel layout;
     private bool working;
 
-    internal SettingsForm(AppSettings current, Func<AppSettings, Task> apply, string? warning)
+    internal SettingsForm(AppSettings current, Func<AppSettings, bool, Task> apply, string? warning, bool startupEnabled)
     {
         this.apply = apply;
         originalMonitor = current.Monitor;
         Text = "Monitor Brightness - Settings";
         AutoScaleDimensions = new SizeF(96, 96);
         AutoScaleMode = AutoScaleMode.Dpi;
-        ClientSize = new Size(610, 540);
+        ClientSize = new Size(610, 590);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
         step.Value = current.StepPercent;
         floor.Value = current.SafetyMinimum;
+        startWithWindows.Checked = startupEnabled;
         increase = new HotkeyEditor(current.Increase);
         decrease = new HotkeyEditor(current.Decrease);
         monitors.Items.Add(new MonitorChoice(null, "None - brightness control disabled"));
@@ -49,9 +51,9 @@ internal sealed class SettingsForm : Form
         };
         status.Text = warning ?? "Choose a monitor and preferences, then Save. Saving or loading settings never changes brightness. Control is paused while this window is open.";
 
-        layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 12 };
+        layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 14 };
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        for (var row = 0; row < 10; row++) layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        for (var row = 0; row < 12; row++) layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
         layout.Controls.Add(new Label { AutoSize = true, MaximumSize = new Size(570, 0), Text =
@@ -65,8 +67,11 @@ internal sealed class SettingsForm : Form
         layout.Controls.Add(Row("Increase:", increase), 0, 7);
         layout.Controls.Add(Row("Decrease:", decrease), 0, 8);
         layout.Controls.Add(new Label { AutoSize = true, Text = "Shortcuts need Ctrl and/or Alt. Holding a key does not repeat." }, 0, 9);
-        layout.Controls.Add(status, 0, 10);
-        layout.Controls.Add(Row("", save, cancel), 0, 11);
+        layout.Controls.Add(startWithWindows, 0, 10);
+        layout.Controls.Add(new Label { AutoSize = true, MaximumSize = new Size(570, 0), Text =
+            "Starts this copy in the tray without changing brightness. Keep the app files here.\r\nIf disabled in Windows Startup apps, enable it there too." }, 0, 11);
+        layout.Controls.Add(status, 0, 12);
+        layout.Controls.Add(Row("", save, cancel), 0, 13);
         Controls.Add(layout);
         cancel.Click += (_, _) => { if (!working) { DialogResult = DialogResult.Cancel; Close(); } };
         scan.Click += async (_, _) => await ScanAsync();
@@ -114,8 +119,8 @@ internal sealed class SettingsForm : Form
                 Increase = increase.Chord, Decrease = decrease.Chord
             };
             candidate.Validate();
-            status.Text = "Checking shortcuts and saving preferences...";
-            await apply(candidate);
+            status.Text = "Checking shortcuts and saving preferences, including Windows startup...";
+            await apply(candidate, startWithWindows.Checked);
             working = false;
             DialogResult = DialogResult.OK;
             Close();

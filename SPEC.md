@@ -50,6 +50,14 @@ Failed validation, registration or disk saves leave previous preferences intact.
 Invalid JSON is ignored with a warning and preserved until an explicit Save,
 which keeps the previous file as a backup. One instance per user/session is allowed.
 
+The user additionally authorized an optional Start with Windows checkbox in
+Settings. It starts the current application copy in the tray after that user
+signs in. The OS startup entry is the source of truth, separate from JSON, and
+only Save changes it. Cancel changes nothing. Loading settings never reinstates
+startup, and startup never changes brightness. Keep the executable and its
+supporting files at the registered path. Removing the check and saving removes
+this application's entry only. Windows Startup apps overrides remain respected.
+
 ## V1 features
 
 1. Runs in notification area / tray, with no permanently visible taskbar window.
@@ -65,7 +73,7 @@ which keeps the previous file as a backup. One instance per user/session is allo
 
 - NVIDIA API / color adjustment / gamma ramps, GPU driver manipulation.
 - Brightness on internal laptop display, DDC alternatives and macOS/Linux.
-- Scheduling, ambient light sensors, profile synchronization, cloud sync, update check, installer, automatic startup, service.
+- Scheduling, ambient light sensors, profile synchronization, cloud sync, update check, installer, service.
 - Rewriting UI in WPF/WinUI, dependencies just for styling.
 
 ## Expected UX

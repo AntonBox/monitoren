@@ -357,11 +357,49 @@ Manual visual verification remains pending; M7 has not started.
 
 ## M7 — Release
 
+**Current status (2026-10-26):** the user authorized M7. Local packaging and
+documentation are ready; acceptance remains pending the published EXE's human
+smoke check. Earlier statements that M7 was unstarted describe earlier checkpoints.
+
+Release `dotnet build -c Release` succeeded with 0 warnings/errors. All 125 checks
+passed in Release (M3 45, M4 19, M5 15, M6 24, UI 10, Startup 12), and native
+declaration/layout/import checks passed without invoking display APIs.
+The first publish failed with NU1301/NU1900 because sandbox DNS blocked NuGet.
+The approved network retry downloaded Microsoft runtime packs and published
+successfully with exit 0 and no warnings/errors reported.
+
+Added `Properties/PublishProfiles/WinX64.pubxml`: self-contained win-x64,
+single-file, native libraries included for extraction, embedded debug symbols,
+and trimming disabled. Output contains only `MonitorBrightness.exe` (116,271,294
+bytes), with an x64 PE header. Replaced the starter README with usage, build,
+settings/startup migration, support limits and DDC/HDR compatibility information.
+Artifact hash and exact checks are in [M7 release verification](docs/M7-release-test.md).
+
+The agent did not launch the tray executable, send brightness commands, change
+real startup/settings, or make a Git commit/upload. Published launch/Exit,
+hardware behavior and startup from the published path await the user. M7's
+checkboxes remain unchecked until the acceptance gate is confirmed.
+
+**User-authorized startup option only:** the user requested a working optional
+Start with Windows checkbox before the remaining release work. Implemented
+current-user sign-in registration of the quoted current EXE via the app's own
+HKCU Run value. Settings reads the actual registration, saves it only on explicit
+Save, and restores the previous entry if JSON saving fails. Cancel/loading/launch
+never create an entry. No elevation, startup brightness writes, publishing or
+commits. This does not authorize the other M7 release steps.
+
+Debug `dotnet build` passed with 0 warnings/errors. All 125 checks passed (12
+new fake startup checks plus 113 existing checks); the new test fixture initially
+had a C# path-escaping compile error, corrected before the successful run.
+Settings previews rendered successfully and were visually inspected. No real
+registry/startup setting was changed by the agent. Sign-in/disable verification
+awaits the user; see [startup option guide](docs/startup-test.md).
+
 - [ ] Build Release, run available automated tests, manual smoke check on Windows.
 - [ ] Publish **self-contained single-file** for `win-x64` first without trimming.
 - [ ] Test the published EXE (not just `dotnet run`) on Windows and confirm Exit.
 - [ ] Write README with build, usage, limitations, and known DDC compatibility caveats.
-- [ ] Only after separate approval: consider optional auto-start. Never modify startup configuration silently.
+- [ ] Optional auto-start: explicitly authorized and implemented; awaiting manual enable/sign-in/disable checks. Never modify startup configuration silently.
 
 **Suggested commands (run on Windows in the app project or solution directory):**
 
